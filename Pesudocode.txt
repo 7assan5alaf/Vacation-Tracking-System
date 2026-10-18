@@ -1,0 +1,74 @@
+
+BEGIN ManageTime
+
+    Employee = GET_AUTHENTICATED_EMPLOYEE()
+    OPEN_VTS(Employee)
+    DISPLAY Employee.VacationRequests
+    DISPLAY Employee.LeaveBalances
+
+    LeaveCategory = SELECT_LEAVE_CATEGORY()
+
+    VacationDetails = ENTER_VACATION_DETAILS()
+
+    REPEAT
+
+        SUBMIT VacationDetails
+
+        IsValid = VALIDATE_VACATION_REQUEST(VacationDetails)
+
+        IF IsValid = FALSE THEN
+
+            DISPLAY "Validation Errors"
+
+            Correct = ASK_EMPLOYEE_TO_CORRECT_REQUEST()
+
+            IF Correct = TRUE THEN
+
+                VacationDetails = EDIT_VACATION_DETAILS()
+
+            ELSE
+
+                CANCEL_REQUEST_SUBMISSION()
+                RETURN "Cancelled"
+
+            END IF
+
+        END IF
+
+    UNTIL IsValid = TRUE
+
+    Request = CREATE_VACATION_REQUEST(
+        Employee,
+        LeaveCategory,
+        VacationDetails
+    )
+
+    SET Request.Status = PENDING_APPROVAL
+
+    SAVE Request
+
+    SEND_EMAIL_TO_MANAGER(Request)
+
+    Manager = GET_AUTHORIZED_MANAGER(Request)
+
+    DISPLAY_PENDING_REQUESTS(Manager)
+
+    ManagerDecision = GET_MANAGER_DECISION(Request)
+
+    IF ManagerDecision = APPROVE THEN
+
+        SET Request.Status = APPROVED
+
+    ELSE
+
+        RejectionReason = GET_REJECTION_REASON()
+
+        SET Request.RejectionReason = RejectionReason
+
+        SET Request.Status = REJECTED
+
+    END IF
+
+    SAVE Request
+
+END ManageTime
