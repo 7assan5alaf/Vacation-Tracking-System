@@ -1,0 +1,45 @@
+
+BEGIN EditPendingRequest
+
+    Employee = GET_AUTHENTICATED_EMPLOYEE()
+
+    OPEN_VTS(Employee)
+
+    DISPLAY Employee.VacationRequests
+    DISPLAY Employee.LeaveBalances
+
+    Request = SELECT_VACATION_REQUEST()
+
+    IF Request.OwnerId != Employee.Id THEN
+        DISPLAY "Unauthorized Request"
+        RETURN
+    END IF
+
+    IF Request.Status != PENDING_APPROVAL THEN
+        DISPLAY "Only Pending Requests Can Be Edited"
+        RETURN
+    END IF
+
+    DISPLAY_EDITABLE_REQUEST(Request)
+
+    REPEAT
+
+        Title = GET_UPDATED_TITLE()
+        Comments = GET_UPDATED_COMMENTS()
+        Dates = GET_UPDATED_DATES()
+
+        SUBMIT_CHANGES(Title, Comments, Dates)
+
+        ValidationErrors = VALIDATE_CHANGES(Request)
+
+        IF ValidationErrors ARE NOT EMPTY THEN
+            DISPLAY_EDIT_FORM_WITH_ERRORS(ValidationErrors)
+        END IF
+
+    UNTIL ValidationErrors ARE EMPTY
+
+    SAVE_UPDATED_REQUEST(Request, Title, Comments, Dates)
+
+    DISPLAY_UPDATED_HOME_PAGE(Employee)
+
+END EditPendingRequest

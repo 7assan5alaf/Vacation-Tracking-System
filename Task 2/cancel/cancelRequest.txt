@@ -1,0 +1,61 @@
+BEGIN CancelRequest
+    Employee = GET_AUTHENTICATED_EMPLOYEE()
+
+    OPEN_VTS(Employee)
+
+    DISPLAY Employee.VacationRequests
+    DISPLAY Employee.LeaveBalances
+
+    Request = SELECT_VACATION_REQUEST()
+
+    IF Request.OwnerId != Employee.Id THEN
+        DISPLAY "Unauthorized Request"
+        RETURN
+    END IF
+	
+	    IF Request.Status != APPROVED THEN
+        DISPLAY "Only Approve Requests Can Be Cancellation"
+        RETURN
+    END IF
+
+   IF Request.StartDate IS IN THE FUTURE THEN
+        IsEligible = TRUE
+    ELSE IF Request.StartDate IS WITHIN THE PREVIOUS_5_BUSINESS_DAYS THEN
+        IsEligible = TRUE
+    ELSE
+        IsEligible = FALSE
+    END IF
+
+    IF IsEligible = FALSE THEN
+        DISPLAY "Request Cannot Be Cancelled"
+        RETURN
+    END IF
+
+    Confirmation = ASK_CANCELLATION_CONFIRMATION()
+
+    IF Confirmation = NO THEN
+        DISPLAY "Cancellation Aborted"
+        RETURN
+    END IF
+
+    IF Request.StartDate IS IN THE PAST THEN
+        Reason = GET_CANCELLATION_REASON()
+
+        IF Reason IS EMPTY THEN
+            DISPLAY "Cancellation Reason Is Required"
+            RETURN
+        END IF
+
+        SAVE Request.CancellationReason = Reason
+    END IF
+
+    SET Request.Status = CANCELLED
+    SAVE Request
+
+    RETURN Request.LeaveHours TO Employee.LeaveBalance
+
+    SEND_CANCELLATION_NOTIFICATION_TO_MANAGER(Request)
+
+    DISPLAY_UPDATED_REQUESTS(Employee)
+    DISPLAY_UPDATED_LEAVE_BALANCE(Employee)
+END CancelRequest

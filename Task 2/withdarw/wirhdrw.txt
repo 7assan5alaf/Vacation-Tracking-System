@@ -1,0 +1,27 @@
+BEGIN WithdrawRequest
+
+    Employee = GET_AUTHENTICATED_EMPLOYEE()
+
+    OPEN_VTS(Employee)
+
+    DISPLAY Employee.VacationRequests
+    DISPLAY Employee.LeaveBalances
+
+    Request = SELECT_VACATION_REQUEST()
+
+    IF Request.OwnerId != Employee.Id THEN
+        DISPLAY "Unauthorized Request"
+        RETURN
+    END IF
+
+    IF Request.Status != PENDING_APPROVAL THEN
+        DISPLAY "Only Pending Requests Can Be Withdrawn"
+        RETURN
+    END IF
+	
+    SET Request.Status = WITHDRAWN
+	REMOVE Request FROM Manager.PendingApprovalList
+    SAVE Request
+    SEND_WITHDRAWAL_NOTIFICATION_TO_MANAGER(Request)
+	DISPLAY_UPDATED_REQUESTS(Employee)
+END WithdrawRequest	
